@@ -1,0 +1,183 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --black: #080808;
+  --dark: #111111;
+  --card: #161616;
+  --border: #252525;
+  --orange: #f97316;
+  --amber: #fbbf24;
+  --steel: #64748b;
+  --light: #f5f5f4;
+  --muted: #737373;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--black);
+  color: var(--light);
+  font-family: "Karla", sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--orange);
+}
+
+/* Selection */
+::selection {
+  background: rgba(249, 115, 22, 0.3);
+  color: white;
+}
+
+/* Grid background utility */
+.grid-bg {
+  background-image: linear-gradient(
+      rgba(249, 115, 22, 0.04) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Orange glow utility */
+.glow-orange {
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.2);
+}
+.glow-orange-sm {
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.15);
+}
+
+/* Noise texture overlay */
+.noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Stagger animation delays */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Animate on load */
+.animate-fade-up {
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(249, 115, 22, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px rgba(249, 115, 22, 0.1);
+}
+
+/* Input focus ring */
+.input-field {
+  @apply w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3
+    text-brand-light placeholder-brand-muted
+    focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange/30
+    transition-all duration-200 font-body text-sm;
+}
+
+/* Primary button */
+.btn-primary {
+  @apply bg-brand-orange hover:bg-orange-500 text-white font-display font-bold
+    uppercase tracking-wider px-6 py-3 rounded-lg
+    transition-all duration-200 active:scale-95
+    disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Secondary button */
+.btn-secondary {
+  @apply bg-transparent hover:bg-brand-card text-brand-light border border-brand-border
+    hover:border-brand-orange/40 font-body font-medium px-6 py-3 rounded-lg
+    transition-all duration-200 active:scale-95;
+}
+
+/* Badge */
+.badge {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-medium
+    border tracking-wide;
+}
+.badge-orange {
+  @apply badge bg-orange-500/10 text-orange-400 border-orange-500/20;
+}
+.badge-green {
+  @apply badge bg-green-500/10 text-green-400 border-green-500/20;
+}
+.badge-steel {
+  @apply badge bg-slate-500/10 text-slate-400 border-slate-500/20;
+}
+.badge-red {
+  @apply badge bg-red-500/10 text-red-400 border-red-500/20;
+}
+
+/* Section heading */
+.section-tag {
+  @apply inline-block font-mono text-xs text-orange-400 uppercase tracking-widest
+    bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-full mb-4;
+}
+
+/* Shimmer loading */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--card) 25%,
+    var(--border) 50%,
+    var(--card) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Star rating */
+.star { color: var(--amber); }
+.star-empty { color: var(--border); }
+
+/* Page transition */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeUp 0.4s ease forwards;
+}
