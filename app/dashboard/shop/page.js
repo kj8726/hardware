@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function ShopDashboard() {
   const { data: session, status } = useSession();
@@ -16,6 +17,10 @@ export default function ShopDashboard() {
   const [shopSubmitting, setShopSubmitting] = useState(false);
   const [shopError, setShopError] = useState("");
 
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState(null); // product to confirm delete
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
     if (session?.user?.role !== "shop_owner" && status === "authenticated") router.push("/dashboard/customer");
@@ -26,12 +31,15 @@ export default function ShopDashboard() {
     Promise.all([
       fetch("/api/shops").then((r) => r.json()),
       fetch("/api/requests?status=open&limit=20").then((r) => r.json()),
-      fetch("/api/products?limit=20").then((r) => r.json()),
+      fetch("/api/products?limit=50").then((r) => r.json()),
     ]).then(([shopsData, reqData, prodData]) => {
       const myShop = shopsData.find?.((s) => s.owner?._id === session.user.id || s.owner === session.user.id);
       setShop(myShop || null);
       setRequests(reqData.requests || []);
-      setProducts((prodData.products || []).filter((p) => p.shop?.owner === session.user.id || typeof p.shop === "string"));
+      // Filter to only this owner's products
+      setProducts((prodData.products || []).filter(
+        (p) => p.shop?.owner === session.user.id || p.shop?._id === myShop?._id
+      ));
       setLoading(false);
     });
   }, [session]);
@@ -49,6 +57,17 @@ export default function ShopDashboard() {
     if (!res.ok) { setShopError(data.error); setShopSubmitting(false); return; }
     setShop(data);
     setShopSubmitting(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const res = await fetch(`/api/products/${deleteTarget._id}`, { method: "DELETE" });
+    if (res.ok) {
+      setProducts((prev) => prev.filter((p) => p._id !== deleteTarget._id));
+    }
+    setDeleting(false);
+    setDeleteTarget(null);
   };
 
   if (status === "loading" || !session) return null;
@@ -140,6 +159,7 @@ export default function ShopDashboard() {
               ))}
             </div>
 
+            {/* Requests tab */}
             {activeTab === "requests" && (
               <div className="space-y-3">
                 {loading ? (
@@ -163,15 +183,17 @@ export default function ShopDashboard() {
               </div>
             )}
 
+            {/* Products tab */}
             {activeTab === "products" && (
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <span className="font-mono text-xs text-brand-muted">{products.length} products</span>
                   <Link href="/products/new" className="btn-primary text-sm py-2 px-4">+ Add Product</Link>
                 </div>
+
                 {loading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {[...Array(6)].map((_, i) => <div key={i} className="shimmer h-32 rounded-xl" />)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[...Array(4)].map((_, i) => <div key={i} className="shimmer h-28 rounded-xl" />)}
                   </div>
                 ) : products.length === 0 ? (
                   <div className="text-center py-12 text-brand-muted">
@@ -179,12 +201,53 @@ export default function ShopDashboard() {
                     <Link href="/products/new" className="btn-primary text-sm">List Your First Product</Link>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {products.map((p) => (
-                      <div key={p._id} className="bg-brand-card border border-brand-border rounded-xl p-4 card-hover">
-                        <h4 className="font-display font-bold text-brand-light text-sm truncate mb-1">{p.name}</h4>
-                        <p className="font-display font-black text-brand-orange">₹{p.price}</p>
-                        <p className="font-mono text-xs text-brand-muted mt-1">Stock: {p.stock}</p>
+                      <div key={p._id} className="bg-brand-card border border-brand-border rounded-xl overflow-hidden flex gap-0">
+                        {/* Thumbnail */}
+                        <div className="relative w-24 h-24 shrink-0 bg-brand-dark self-stretch">
+                          {p.images?.[0] ? (
+                            <Image src={p.images[0]} alt={p.name} fill className="object-cover" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-3xl">🔩</div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 p-3 min-w-0">
+                          <h4 className="font-display font-bold text-brand-light text-sm truncate mb-0.5">{p.name}</h4>
+                          <p className="font-display font-black text-brand-orange text-base">₹{p.price.toLocaleString("en-IN")}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="font-mono text-xs text-brand-muted">Stock: {p.stock}</span>
+                            <span className="badge-orange text-[9px]">{p.category}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-1 p-2 shrink-0 justify-center">
+                          <Link
+                            href={`/products/${p._id}/edit`}
+                            className="flex items-center gap-1 bg-brand-dark hover:bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 font-mono text-xs px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => setDeleteTarget(p)}
+                            className="flex items-center gap-1 bg-brand-dark hover:bg-red-500/10 text-red-400 border border-red-500/20 hover:border-red-500/40 font-mono text-xs px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                              <path d="M10 11v6M14 11v6"/>
+                              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                            </svg>
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -194,6 +257,35 @@ export default function ShopDashboard() {
           </>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-brand-card border border-brand-border rounded-2xl p-6 max-w-sm w-full animate-fade-up">
+            <div className="text-3xl mb-3 text-center">🗑️</div>
+            <h3 className="font-display font-black text-xl text-brand-light text-center mb-1">Delete Product?</h3>
+            <p className="text-brand-muted text-sm text-center mb-6">
+              <span className="text-brand-light font-medium">"{deleteTarget.name}"</span> will be permanently removed from the marketplace.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 btn-secondary py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 font-mono text-sm py-2.5 px-4 rounded-lg transition-all disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
