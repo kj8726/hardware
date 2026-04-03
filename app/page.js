@@ -19,17 +19,18 @@ const CATEGORIES = [
 async function getHomeData() {
   try {
     await connectDB();
-    const [requests, shops, productCount] = await Promise.all([
+    const [requests, shops, productCount, requestCount, shopCount] = await Promise.all([
       Request.find({ status: "open" }).populate("user", "name avatar").sort({ createdAt: -1 }).limit(6).lean(),
       Shop.find({ isApproved: true }).sort({ rating: -1 }).limit(4).lean(),
       Product.countDocuments({ isActive: true }),
+      Request.countDocuments({ status: "open" }),        // ← real total
+      Shop.countDocuments({ isApproved: true }),         // ← real total
     ]);
-    return { requests, shops, productCount };
+    return { requests, shops, productCount, requestCount, shopCount };
   } catch {
-    return { requests: [], shops: [], productCount: 0 };
+    return { requests: [], shops: [], productCount: 0, requestCount: 0, shopCount: 0 };
   }
 }
-
 export default async function HomePage() {
   const { requests, shops, productCount } = await getHomeData();
 
